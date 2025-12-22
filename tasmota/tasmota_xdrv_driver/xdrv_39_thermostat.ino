@@ -313,17 +313,24 @@ inline bool ThermostatRelayIdValid(uint8_t relayId)
 
 uint8_t ThermostatInputStatus(uint8_t input_switch)
 {
-  bool ifId = ThermostatSwitchIdValid(input_switch);
   uint8_t value = 0;
-  if(ifId) {
-    value = SwitchGetState(ifId - THERMOSTAT_INPUT_SWT1);
+
+  if (ThermostatSwitchIdValid(input_switch)) {
+    value = SwitchGetState(input_switch - THERMOSTAT_INPUT_SWT1);
   }
+
   return value;
 }
 
 uint8_t ThermostatOutputStatus(uint8_t output_switch)
 {
-  return (uint8_t)bitRead(TasmotaGlobal.power, (output_switch - 1));
+  uint8_t value = 0;
+
+  if (ThermostatRelayIdValid(output_switch)) {
+    value = (uint8_t)bitRead(TasmotaGlobal.power, (output_switch - 1));
+  }
+
+  return value;
 }
 
 int16_t ThermostatCelsiusToFahrenheit(const int32_t deg, uint8_t conv_type) {
