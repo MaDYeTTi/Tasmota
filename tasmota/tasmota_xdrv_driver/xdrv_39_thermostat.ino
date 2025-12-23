@@ -1548,7 +1548,7 @@ void CmndInputSwitchUse(void)
     uint8_t ctr_output = XdrvMailbox.index - 1;
     if (XdrvMailbox.data_len > 0) {
       uint8_t value = (uint8_t)(XdrvMailbox.payload);
-      if (value <= INPUT_USED) {
+      if ((value >= INPUT_NOT_USED) && (value <= INPUT_USED)) {
         Thermostat[ctr_output].status.use_input = value;
       }
     }
@@ -1561,6 +1561,8 @@ void CmndThermostat(void)
   // Report the configured IO mapping and current IO states to ease troubleshooting.
   if ((XdrvMailbox.index > 0) && (XdrvMailbox.index <= THERMOSTAT_CONTROLLER_OUTPUTS)) {
     uint8_t ctr_output = XdrvMailbox.index - 1;
+    Thermostat[ctr_output].status.status_input = (uint32_t)ThermostatInputStatus(Thermostat[ctr_output].status.input_switch_number);
+    Thermostat[ctr_output].status.status_output = (uint32_t)ThermostatOutputStatus(Thermostat[ctr_output].status.output_relay_number);
     Response_P(PSTR("{\"Thermostat%d\":{\"Input\":%d,\"InputState\":%d,\"UseInput\":%d,"
                      "\"Relay\":%d,\"RelayState\":%d,\"Command\":%d,\"EnableOutput\":%d}}"),
                XdrvMailbox.index,
