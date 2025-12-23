@@ -38,6 +38,7 @@
 #endif // DEBUG_THERMOSTAT
 
 // Commands
+#define D_CMND_THERMOSTAT "Thermostat"
 #define D_CMND_THERMOSTATMODESET "ThermostatModeSet"
 #define D_CMND_CLIMATEMODESET "ClimateModeSet"
 #define D_CMND_TEMPFROSTPROTECTSET "TempFrostProtectSet"
@@ -162,7 +163,7 @@ const char DOMOTICZ_MES[] PROGMEM = "{\"idx\":%d,\"nvalue\":%d,\"svalue\":\"%s\"
 uint16_t Domoticz_Virtual_Switches[DOMOTICZ_MAX_IDX] = { DOMOTICZ_IDX1, DOMOTICZ_IDX3, DOMOTICZ_IDX4, DOMOTICZ_IDX5 };
 #endif // DEBUG_THERMOSTAT
 
-const char kThermostatCommands[] PROGMEM = "|" D_CMND_THERMOSTATMODESET "|" D_CMND_CLIMATEMODESET "|"
+const char kThermostatCommands[] PROGMEM = "|" D_CMND_THERMOSTAT "|" D_CMND_THERMOSTATMODESET "|" D_CMND_CLIMATEMODESET "|"
   D_CMND_TEMPFROSTPROTECTSET "|" D_CMND_CONTROLLERMODESET "|" D_CMND_INPUTSWITCHSET "|" D_CMND_INPUTSWITCHUSE "|"
   D_CMND_OUTPUTRELAYSET "|" D_CMND_TIMEALLOWRAMPUPSET "|" D_CMND_TEMPFORMATSET "|" D_CMND_TEMPMEASUREDSET "|"
   D_CMND_TEMPTARGETSET "|" D_CMND_TEMPMEASUREDGRDREAD "|" D_CMND_SENSORINPUTSET "|" D_CMND_STATEEMERGENCYSET "|"
@@ -178,7 +179,7 @@ const char kThermostatCommands[] PROGMEM = "|" D_CMND_THERMOSTATMODESET "|" D_CM
   D_CMND_ENABLEOUTPUTSET;
 
 void (* const ThermostatCommand[])(void) PROGMEM = {
-  &CmndThermostatModeSet, &CmndClimateModeSet, &CmndTempFrostProtectSet, &CmndControllerModeSet, &CmndInputSwitchSet,
+  &CmndThermostat, &CmndThermostatModeSet, &CmndClimateModeSet, &CmndTempFrostProtectSet, &CmndControllerModeSet, &CmndInputSwitchSet,
   &CmndInputSwitchUse, &CmndOutputRelaySet, &CmndTimeAllowRampupSet, &CmndTempFormatSet, &CmndTempMeasuredSet,
   &CmndTempTargetSet, &CmndTempMeasuredGrdRead, &CmndSensorInputSet, &CmndStateEmergencySet, &CmndTimeManualToAutoSet,
   &CmndPropBandSet, &CmndTimeResetSet, &CmndTimePiCycleSet, &CmndTempAntiWindupResetSet, &CmndTempHystSet,
@@ -1543,12 +1544,35 @@ void CmndInputSwitchSet(void)
 
 void CmndInputSwitchUse(void)
 {
-  if ((XdrvMailbox.index >= INPUT_NOT_USED) && (XdrvMailbox.index <= INPUT_USED)) {
+  if ((XdrvMailbox.index > 0) && (XdrvMailbox.index <= THERMOSTAT_CONTROLLER_OUTPUTS)) {
     uint8_t ctr_output = XdrvMailbox.index - 1;
     if (XdrvMailbox.data_len > 0) {
-      Thermostat[ctr_output].status.use_input = (uint32_t)(XdrvMailbox.payload);
+      uint8_t value = (uint8_t)(XdrvMailbox.payload);
+      if (value <= INPUT_USED) {
+        Thermostat[ctr_output].status.use_input = value;
+      }
     }
     ResponseCmndIdxNumber((int)Thermostat[ctr_output].status.use_input);
+  }
+}
+
+void CmndThermostat(void)
+{
+  // Report the configured IO mapping and current IO states to ease troubleshooting.
+  if ((XdrvMailbox.index > 0) && (XdrvMailbox.index <= THERMOSTAT_CONTROLLER_OUTPUTS)) {
+    uint8_t ctr_output = XdrvMailbox.index - 1;
+    Response_P(PSTR("{\"Thermostat%d\":{\"Input\":%d,\"InputState\":%d,\"UseInput\":%d,"
+                     "\"Relay\":%d,\"RelayState\":%d,\"Command\":%d,\"EnableOutput\":%d}}"),
+               XdrvMailbox.index,
+               Thermostat[ctr_output].status.input_switch_number,
+               Thermostat[ctr_output].status.status_input,
+               Thermostat[ctr_output].status.use_input,
+               Thermostat[ctr_output].status.output_relay_number,
+               Thermostat[ctr_output].status.status_output,
+               Thermostat[ctr_output].status.command_output,
+               Thermostat[ctr_output].status.enable_output);
+  } else {
+    ResponseCmndDone();
   }
 }
 
